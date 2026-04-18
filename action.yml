@@ -1,0 +1,35 @@
+name: 'AI Code Review'
+description: 'AI-powered code review for pull requests'
+inputs:
+  github-token:
+    description: 'GitHub token'
+    required: true
+  ai-api-key:
+    description: 'AI API key (OpenAI, 智谱, any OpenAI-compatible API)'
+    required: true
+  ai-model:
+    description: 'AI model name'
+    required: false
+    default: 'gpt-4o-mini'
+  ai-base-url:
+    description: 'AI API base URL (for non-OpenAI providers)'
+    required: false
+    default: 'https://api.openai.com/v1'
+  max-files:
+    description: 'Max number of files to review'
+    required: false
+    default: '20'
+  ignore-patterns:
+    description: 'Comma-separated glob patterns to ignore (e.g. "*.lock,*.generated.*,i18n/*")'
+    required: false
+    default: ''
+  language:
+    description: 'Language for review comments (en, zh, or any language code)'
+    required: false
+    default: 'en'
+runs:
+  using: 'node20'
+  main: 'dist/index.js'
+branding:
+  icon: 'eye'
+  color: 'green'
