@@ -5,8 +5,7 @@
   "type": "module",
   "main": "dist/index.js",
   "scripts": {
-    "build": "tsc",
-    "package": "ncc build dist/index.js -o dist --source-map",
+    "build": "tsc && ncc build dist/index.js -o dist --source-map",
     "test": "jest"
   },
   "dependencies": {

@@ -14,10 +14,6 @@ interface ReviewComment {
   severity: 'error' | 'warning' | 'info';
 }
 
-interface AIResponse {
-  reviews: ReviewComment[];
-}
-
 // ── Inputs ──────────────────────────────────────────────
 function getInputs() {
   return {
@@ -65,15 +61,13 @@ async function getPRDiff(
 
 // ── Build review prompt ─────────────────────────────────
 function buildReviewPrompt(file: { filename: string; patch: string }, language = 'en'): string {
-  let systemLine: string;
-  if (language === 'zh') {
-    systemLine = '你是一位资深代码审查专家。请仅返回有效的 JSON。';
-  } else if (language === 'en') {
-    systemLine = 'You are an expert code reviewer. Respond with valid JSON only.';
-  } else {
-    systemLine = `You are an expert code reviewer. Write review comments in ${language}. Respond with valid JSON only.`;
-  }
-  return `${systemLine} Review the following code diff and identify real issues.
+  const langInstruction = language === 'en'
+    ? ''
+    : language === 'zh'
+      ? '\n- 用中文写审查意见（body 字段）'
+      : `\n- Write review comments (body field) in ${language}`;
+
+  return `Review the following code diff and identify real issues.
 
 File: ${file.filename}
 
@@ -84,7 +78,7 @@ Rules:
 - Only report genuine bugs, security vulnerabilities, logic errors, or significant style issues
 - Do NOT report trivial issues (missing semicolons, minor formatting)
 - Be specific: reference exact lines and explain WHY something is wrong
-- If the code looks fine, return an empty reviews array
+- If the code looks fine, return an empty reviews array${langInstruction}
 
 Respond with ONLY this JSON structure, no other text:
 {

@@ -93,7 +93,9 @@ export function extractBalanced(text: string, open: string, close: string): stri
   for (let i = 0; i < text.length; i++) {
     const ch = text[i];
     if (escape) { escape = false; continue; }
-    if (ch === '\\' && inString) { escape = true; continue; }
+    // NOTE: escape 只设 flag，不用 continue，因为下一轮 escape=true 会跳过被转义的字符
+    // 如果这里 continue，反斜杠本身会被吞掉，导致 \\ 等场景下后续引号状态错乱
+    if (ch === '\\' && inString) { escape = true; }
     if (ch === '"') { inString = !inString; continue; }
     if (inString) continue; // 字符串内不计数
     if (ch === open) { if (depth === 0) start = i; depth++; }
