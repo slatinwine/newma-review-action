@@ -38740,41 +38740,102 @@ function readRepoFiles(root, maxFiles, ignorePatterns) {
     }
     return results;
 }
-// ── Full scan prompt（审完整文件，不是 diff）─────────────
-function buildFullScanPrompt(file, language = 'en') {
-    const langInstruction = language === 'en'
-        ? ''
-        : language === 'zh'
-            ? '\n- 用中文写审查意见（body 字段）'
+// ── Full scan prompt（青山软件审查模式内化）───────────────
+function buildFullScanPrompt(file, language = 'en', validators = '') {
+    const langInstruction = language === 'zh'
+        ? '\n- 用中文写审查意见（body 字段）'
+        : language === 'en'
+            ? ''
             : `\n- Write review comments (body field) in ${language}`;
-    const bugChecklist = language === 'zh' ? `
-🔍 **检查清单（逐项检查）**：
-1. **安全问题** — eval(), 硬编码密钥, 注入风险
-2. **JS/TS 错误** — == vs ===, var vs let/const, 异步错误, null 访问
-3. **逻辑错误** — 死代码, 边界条件, 循环错误, 类型不匹配
-4. **性能问题** — 循环内昂贵操作, 内存泄漏
-` : `
-🔍 **Checklist**: Security (eval, hardcoded keys, injection) | JS/TS errors (==, var, async, null) | Logic (dead code, boundaries, loops) | Performance (expensive loops, leaks)
-`;
-    return `You are a senior code reviewer. Review this ENTIRE file and find REAL bugs only.
+    const validatorsContext = validators
+        ? `\n**本目录可用的校验/清理函数**：${validators}\n（如果代码构造了 URL/路径但没有调用上述函数，很可能存在注入漏洞）\n`
+        : '';
+    const prompt = language === 'zh'
+        ? `你是代码安全审查专家。逐项检查以下代码中的 **3 类高危问题**。只报告确定存在的问题。
+
+## 检查项（按优先级）
+
+### 1. URL/路径注入（最严重 — 报告为 error）
+- 找出所有用 \`\${...}\` 或字符串拼接构造 URL、路径、命令的地方
+- 对每个这样的地方：拼接的变量是否经过校验（validate/sanitize/escape）？
+- 如果未校验 → 报告为 error
+- 特别注意：参数直接拼入 fetch/axios URL 的情况
+
+### 2. 异步错误丢失（报告为 warning）
+- 找出所有 \`void someAsync()\` 或未 \`await\` 的 Promise 调用
+- 这个 Promise reject 时错误去哪了？外层 try-catch 能捕获吗？
+- 如果错误被静默吞掉 → 报告为 warning
+
+### 3. 异常分支状态错误（报告为 warning）
+- try-catch 的 catch 分支里，是否重置了不该重置的计数器或标志位？
+- 正常流程中设置的变量，在异常路径是否被错误修改？
+- 如果发现状态不一致 → 报告为 warning
+${validatorsContext}
+**规则**：
+- 只报告这 3 类问题，不报告代码风格、格式、命名
+- 必须引用具体代码行并说明 WHY
+- 如果没发现问题，回复空列表${langInstruction}
+
+文件：${file.filename}
+
+\`\`\`
+${file.content}
+\`\`\`
+
+只回复这个 JSON：
+{"reviews": [{"path": "${file.filename}", "line": <行号>, "body": "<问题描述>", "severity": "error"|"warning"|"info"}]}`
+        : `You are a code security auditor. Check this code for EXACTLY 3 categories of high-priority bugs. Report ONLY confirmed issues.
+
+## Checks (in priority order)
+
+### 1. URL/Path Injection (report as error)
+- Find ALL places where \`\${...}\` or string concatenation builds a URL, path, or command
+- For each: is the variable validated/sanitized/escaped before interpolation?
+- If NOT validated → report as error
+- Watch for: parameters directly interpolated into fetch/axios URLs
+
+### 2. Swallowed Async Errors (report as warning)
+- Find ALL \`void someAsync()\` or un-awaited Promise calls
+- Where does the rejection go? Can the outer try-catch catch it?
+- If the error is silently lost → report as warning
+
+### 3. Corrupted State on Error Paths (report as warning)
+- In catch blocks: are counters/flags incorrectly reset?
+- Is state modified in error paths that should only change on success?
+- If you find inconsistent state → report as warning
+${validatorsContext}
+**Rules**:
+- ONLY report these 3 categories. No style/formatting/naming issues.
+- Quote the exact code and explain WHY it's wrong
+- If no issues found, return empty list${langInstruction}
 
 File: ${file.filename}
-${bugChecklist}
-**Rules**:
-- Report ONLY genuine bugs, security issues, or logic errors
-- Do NOT report: style, formatting, missing semicolons, naming conventions
-- Be specific: quote the exact code and explain WHY it's wrong${langInstruction}
 
 \`\`\`
 ${file.content}
 \`\`\`
 
 Respond with ONLY this JSON:
-{
-  "reviews": [
-    {"path": "${file.filename}", "line": <line>, "body": "<issue>", "severity": "error"|"warning"|"info"}
-  ]
-}`;
+{"reviews": [{"path": "${file.filename}", "line": <number>, "body": "<description>", "severity": "error"|"warning"|"info"}]}`;
+    return prompt;
+}
+// ── Grep 预扫描：找同目录的校验函数 ──────────────────────
+function grepValidators(fileDir, allFiles) {
+    const validators = [];
+    const pattern = /(?:function|const|let|export)\s+(validate\w*|sanitize\w*|escape\w*|check\w*|verify\w*)/gi;
+    for (const f of allFiles) {
+        if ((0,external_path_.dirname)(f.filename) === fileDir) {
+            const matches = f.content.match(pattern);
+            if (matches) {
+                for (const m of matches) {
+                    const name = m.replace(/^(?:function|const|let|export)\s+/, '');
+                    if (!validators.includes(name))
+                        validators.push(name);
+                }
+            }
+        }
+    }
+    return validators.join(', ');
 }
 // ── Full scan: 发 GitHub Issue ────────────────────────────
 async function createReviewIssue(octokit, owner, repo, reviews) {
@@ -38910,7 +38971,13 @@ async function runFullMode(inputs) {
         const file = repoFiles[i];
         core.info(`[${i + 1}/${repoFiles.length}] Scanning: ${file.filename}`);
         try {
-            const prompt = buildFullScanPrompt(file, inputs.language);
+            // grep 预扫描：找同目录的校验函数，注入 prompt 上下文
+            const fileDir = (0,external_path_.dirname)(file.filename);
+            const validators = grepValidators(fileDir, repoFiles);
+            if (validators) {
+                core.info(`  Found validators in same dir: ${validators}`);
+            }
+            const prompt = buildFullScanPrompt(file, inputs.language, validators);
             const reviews = await callAI(inputs.aiBaseUrl, inputs.aiApiKey, inputs.aiModel, prompt, inputs.language);
             core.info(`  Found ${reviews.length} issue(s)`);
             allReviews.push(...reviews);
