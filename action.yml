@@ -1,5 +1,5 @@
 name: 'Newma Review'
-description: 'AI-powered code review for pull requests — supports any OpenAI-compatible API'
+description: 'AI-powered code review — diff mode for PRs, full mode for repo-wide security scans. 5-category audit: URL injection, secret leakage, async errors, state corruption, fail-open defaults'
 inputs:
   github-token:
     description: 'GitHub token'
