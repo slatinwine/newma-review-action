@@ -15,12 +15,16 @@ on:
   pull_request:
     types: [opened, synchronize]
 
+permissions:
+  pull-requests: write
+  contents: read
+
 jobs:
   review:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: slatinwine/newma-review-action@v0.1
+      - uses: slatinwine/newma-review-action@v0.1.0
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           ai-api-key: ${{ secrets.AI_API_KEY }}
@@ -30,7 +34,7 @@ jobs:
 
 | Input | Required | Default | Description |
 |-------|----------|---------|-------------|
-| `github-token` | ✅ | — | GitHub token (`${{ github.token }}` works) |
+| `github-token` | ✅ | — | GitHub token (`${{ secrets.GITHUB_TOKEN }}` works) |
 | `ai-api-key` | ✅ | — | AI API key |
 | `ai-model` | ❌ | `gpt-4o-mini` | Model name |
 | `ai-base-url` | ❌ | `https://api.openai.com/v1` | API base URL (change for non-OpenAI providers) |
@@ -41,12 +45,24 @@ jobs:
 ## Using with 智谱 (ZhipuAI)
 
 ```yaml
-      - uses: slatinwine/newma-review-action@v0.1
+- uses: slatinwine/newma-review-action@v0.1.0
   with:
     github-token: ${{ secrets.GITHUB_TOKEN }}
     ai-api-key: ${{ secrets.ZHIPU_API_KEY }}
     ai-model: glm-4-flash
     ai-base-url: https://open.bigmodel.cn/api/paas/v4
+    language: zh
+```
+
+## Using with DeepSeek
+
+```yaml
+- uses: slatinwine/newma-review-action@v0.1.0
+  with:
+    github-token: ${{ secrets.GITHUB_TOKEN }}
+    ai-api-key: ${{ secrets.DEEPSEEK_API_KEY }}
+    ai-model: deepseek-chat
+    ai-base-url: https://api.deepseek.com/v1
 ```
 
 ## Outputs
