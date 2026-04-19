@@ -1,2 +1,9 @@
 node_modules/
 .DS_Store
+# tsc compiled output (not needed, ncc bundles everything)
+dist/parse.js
+dist/parse.js.map
+dist/parse.d.ts
+dist/index.d.ts
+dist/index.d.ts.map
+dist/__tests__/
