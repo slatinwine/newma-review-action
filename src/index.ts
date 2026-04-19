@@ -67,18 +67,75 @@ function buildReviewPrompt(file: { filename: string; patch: string }, language =
       ? '\n- 用中文写审查意见（body 字段）'
       : `\n- Write review comments (body field) in ${language}`;
 
-  return `Review the following code diff and identify real issues.
+  const bugChecklist = language === 'zh' ? `
+🔍 **检查清单（逐项检查）**：
+1. **安全问题**
+   - eval()、Function() 构造函数、innerHTML/XSS 风险
+   - 硬编码密钥/密码/API key
+   - SQL 注入、命令注入风险
+
+2. **JavaScript/TypeScript 错误**
+   - == vs ===（必须用 ===）
+   - var vs let/const（优先用 const）
+   - 未声明变量、变量提升问题
+   - 数组越界、undefined/null 访问
+   - 异步错误（缺少 await、Promise 未处理）
+   - this 绑定问题
+
+3. **逻辑错误**
+   - 死代码、不可达代码
+   - 边界条件错误（空数组、null/undefined）
+   - 循环错误（无限循环、错误终止条件）
+   - 类型错误（类型不匹配）
+
+4. **性能问题**
+   - 循环内的昂贵操作
+   - 内存泄漏（未清理的事件监听器、定时器）
+   - 重复计算
+` : `
+🔍 **Checklist (verify each item)**:
+1. **Security Issues**
+   - eval(), Function() constructor, innerHTML/XSS risks
+   - Hardcoded secrets/passwords/API keys
+   - SQL injection, command injection risks
+
+2. **JavaScript/TypeScript Errors**
+   - == vs === (must use ===)
+   - var vs let/const (prefer const)
+   - Undeclared variables, hoisting issues
+   - Array out of bounds, undefined/null access
+   - Async errors (missing await, unhandled Promise)
+   - this binding issues
+
+3. **Logic Errors**
+   - Dead code, unreachable code
+   - Boundary conditions (empty arrays, null/undefined)
+   - Loop errors (infinite loops, wrong termination)
+   - Type mismatches
+
+4. **Performance Issues**
+   - Expensive operations in loops
+   - Memory leaks (uncleaned event listeners, timers)
+   - Redundant calculations
+`;
+
+  return `You are a senior code reviewer. Review this diff and find REAL bugs only.
 
 File: ${file.filename}
 
 Diff:
 ${file.patch}
+${bugChecklist}
+**Severity Guide**:
+- 🔴 **error**: Security vulnerabilities, crashes, data corruption, == instead of ===, var instead of let/const
+- 🟡 **warning**: Potential bugs, edge cases, performance issues
+- 🔵 **info**: Minor issues, best practices
 
-Rules:
-- Only report genuine bugs, security vulnerabilities, logic errors, or significant style issues
-- Do NOT report trivial issues (missing semicolons, minor formatting)
-- Be specific: reference exact lines and explain WHY something is wrong
-- If the code looks fine, return an empty reviews array${langInstruction}
+**Quality Control**:
+- Report ONLY genuine issues from the checklist above
+- Do NOT report: missing semicolons, spacing, formatting, style preferences
+- Be specific: quote the exact code and explain WHY it's wrong
+- Check EACH line carefully - don't skip obvious bugs${langInstruction}
 
 Respond with ONLY this JSON structure, no other text:
 {
