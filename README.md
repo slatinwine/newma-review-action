@@ -1,5 +1,7 @@
 # 🤖 Newma Review Action
 
+[![GitHub Marketplace](https://img.shields.io/badge/Marketplace-Newma%20Review-blue?logo=github)](https://github.com/marketplace/actions/newma-review)
+
 AI-powered code review for GitHub pull requests. Zero config, one API key, done.
 
 > **Zero config · Any model · $0.01/PR · 5x parallel**
@@ -18,7 +20,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: newma/review-action@v0.1
+      - uses: slatinwine/newma-review-action@v0.1
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           ai-api-key: ${{ secrets.AI_API_KEY }}
@@ -39,7 +41,7 @@ jobs:
 ## Using with 智谱 (ZhipuAI)
 
 ```yaml
-- uses: newma/review-action@v0.1
+      - uses: slatinwine/newma-review-action@v0.1
   with:
     github-token: ${{ secrets.GITHUB_TOKEN }}
     ai-api-key: ${{ secrets.ZHIPU_API_KEY }}
