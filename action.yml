@@ -1,5 +1,5 @@
-name: 'AI Code Review'
-description: 'AI-powered code review for pull requests'
+name: 'Newma Review'
+description: 'AI-powered code review for pull requests — supports any OpenAI-compatible API'
 inputs:
   github-token:
     description: 'GitHub token'
