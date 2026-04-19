@@ -23,6 +23,10 @@ inputs:
     description: 'Comma-separated glob patterns to ignore (e.g. "*.lock,*.generated.*,i18n/*")'
     required: false
     default: ''
+  mode:
+    description: 'Review mode: "diff" reviews PR changes, "full" scans entire repo'
+    required: false
+    default: 'diff'
   language:
     description: 'Language for review comments (en, zh, or any language code)'
     required: false
