@@ -525,7 +525,7 @@ async function runFullMode(inputs: ReturnType<typeof getInputs>): Promise<void> 
     return;
   }
 
-  // 串行逐文件调用 AI（API 并发限制）
+  // 串行逐文件调用 AI（API 并发限制），每文件间隔 3 秒避免限频
   const allReviews: ReviewComment[] = [];
   for (let i = 0; i < repoFiles.length; i++) {
     const file = repoFiles[i];
@@ -537,6 +537,10 @@ async function runFullMode(inputs: ReturnType<typeof getInputs>): Promise<void> 
       allReviews.push(...reviews);
     } catch (err: any) {
       core.warning(`Failed to scan ${file.filename}: ${err.message}`);
+    }
+    // 避免 API 限频
+    if (i < repoFiles.length - 1) {
+      await new Promise(resolve => setTimeout(resolve, 3000));
     }
   }
 
