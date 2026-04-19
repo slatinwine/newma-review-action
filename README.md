@@ -46,7 +46,7 @@ jobs:
     github-token: ${{ secrets.GITHUB_TOKEN }}
     ai-api-key: ${{ secrets.ZHIPU_API_KEY }}
     ai-model: glm-4-flash
-    ai-base-url: https://open.bigmodel.cn/api/paas/v4
+    ai-base-url: https://open.bigmodel.cn/api/coding/paas/v4
 ```
 
 ## Outputs
