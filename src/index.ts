@@ -340,7 +340,7 @@ function buildFullScanPrompt(
     : '';
 
   const prompt = language === 'zh'
-    ? `你是代码安全审查专家。逐项检查以下代码中的 **3 类高危问题**。只报告确定存在的问题。
+    ? `你是代码安全审查专家。逐项检查以下代码中的 **5 类高危问题**。只报告确定存在的问题。
 
 ## 检查项（按优先级）
 
@@ -350,18 +350,29 @@ function buildFullScanPrompt(
 - 如果未校验 → 报告为 error
 - 特别注意：参数直接拼入 fetch/axios URL 的情况
 
-### 2. 异步错误丢失（报告为 warning）
+### 2. 密钥/凭证泄露（报告为 error）
+- 日志、错误消息、调试输出中是否包含 API key / token / secret？
+- 脱敏逻辑是否完整？是否只覆盖了 JSON 而漏了 URL query/header？
+- 关键判断：如果攻击者拿到这段日志，能否恢复出部分密钥？
+- 即使只泄露前几位也算 error（降低 token 熵值）
+
+### 3. 异步错误丢失（报告为 warning）
 - 找出所有 \`void someAsync()\` 或未 \`await\` 的 Promise 调用
 - 这个 Promise reject 时错误去哪了？外层 try-catch 能捕获吗？
 - 如果错误被静默吞掉 → 报告为 warning
 
-### 3. 异常分支状态错误（报告为 warning）
+### 4. 异常分支状态错误（报告为 warning）
 - try-catch 的 catch 分支里，是否重置了不该重置的计数器或标志位？
 - 正常流程中设置的变量，在异常路径是否被错误修改？
 - 如果发现状态不一致 → 报告为 warning
+
+### 5. 默认 fail-open（报告为 warning）
+- 权限检查、安全校验、类型守卫的默认分支/else 分支
+- 如果条件不满足或类型不匹配，是拒绝（fail-closed）还是放行（fail-open）？
+- 放行 = 安全隐患 → 报告为 warning
 ${validatorsContext}
 **规则**：
-- 只报告这 3 类问题，不报告代码风格、格式、命名
+- 只报告这 5 类问题，不报告代码风格、格式、命名
 - 必须引用具体代码行并说明 WHY
 - 如果没发现问题，回复空列表${langInstruction}
 
@@ -373,7 +384,7 @@ ${file.content}
 
 只回复这个 JSON：
 {"reviews": [{"path": "${file.filename}", "line": <行号>, "body": "<问题描述>", "severity": "error"|"warning"|"info"}]}`
-    : `You are a code security auditor. Check this code for EXACTLY 3 categories of high-priority bugs. Report ONLY confirmed issues.
+    : `You are a code security auditor. Check this code for EXACTLY 5 categories of high-priority bugs. Report ONLY confirmed issues.
 
 ## Checks (in priority order)
 
@@ -383,18 +394,29 @@ ${file.content}
 - If NOT validated → report as error
 - Watch for: parameters directly interpolated into fetch/axios URLs
 
-### 2. Swallowed Async Errors (report as warning)
+### 2. Secret/Credential Leakage (report as error)
+- Do logs, error messages, or debug output contain API keys / tokens / secrets?
+- Is the redaction complete? Does it cover JSON but miss URL query params / headers?
+- Key test: could an attacker recover partial secrets from this log output?
+- Even leaking a few characters counts (reduces token entropy)
+
+### 3. Swallowed Async Errors (report as warning)
 - Find ALL \`void someAsync()\` or un-awaited Promise calls
 - Where does the rejection go? Can the outer try-catch catch it?
 - If the error is silently lost → report as warning
 
-### 3. Corrupted State on Error Paths (report as warning)
+### 4. Corrupted State on Error Paths (report as warning)
 - In catch blocks: are counters/flags incorrectly reset?
 - Is state modified in error paths that should only change on success?
 - If you find inconsistent state → report as warning
+
+### 5. Default Fail-Open (report as warning)
+- In permission checks, security validations, or type guards: what does the default/else branch do?
+- If the condition fails or type doesn't match, does it REJECT (fail-closed) or ALLOW (fail-open)?
+- Allowing = security risk → report as warning
 ${validatorsContext}
 **Rules**:
-- ONLY report these 3 categories. No style/formatting/naming issues.
+- ONLY report these 5 categories. No style/formatting/naming issues.
 - Quote the exact code and explain WHY it's wrong
 - If no issues found, return empty list${langInstruction}
 
