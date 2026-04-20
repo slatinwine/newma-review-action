@@ -1,5 +1,5 @@
 name: 'Newma Review'
-description: 'AI-powered code review — diff mode for PRs, full mode for repo-wide security scans. 5-category audit: URL injection, secret leakage, async errors, state corruption, fail-open defaults'
+description: 'AI-powered code review: diff mode for PRs, full mode for repo-wide scans. 5-category security audit.'
 inputs:
   github-token:
     description: 'GitHub token'
