@@ -134,3 +134,7 @@ Free tier: glm-4.7-flash has free quota on 智谱. GPT-4o-mini: ~$0.01/PR.
 ## License
 
 MIT
+
+## 关注公众号
+
+![公众号二维码](qrcode.jpg)
